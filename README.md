@@ -1,15 +1,18 @@
-# Oracle STATUS_V Updater Web Application
+# G-TECH COMPANY - Customer Life Cycle Updater
 
-A simple web application to update the `STATUS_V` field in the Oracle `CBS_CORE.GSM_MOBILE_MASTER` table.
+A professional web application for managing customer lifecycle status updates in the Oracle `CBS_CORE.GSM_MOBILE_MASTER` table.
 
 ## Features
 
 - Clean and intuitive user interface
+- Single mobile number update
+- Bulk update (space or comma separated numbers)
 - Real-time status updates to Oracle database
 - Input validation and error handling
 - Responsive design that works on desktop and mobile
 - Loading indicators for better UX
-- Alert messages for success/error feedback
+- Toast notifications for success/error feedback
+- Status validation (prevents updates when current status is A, Z, or N)
 
 ## Prerequisites
 
