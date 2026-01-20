@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>G-TECH COMPANY</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+            font-family: inherit;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-update {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-update:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-update:active {
+            transform: translateY(0);
+        }
+
+        .btn-clear {
+            background: #f0f0f0;
+            color: #333;
+            border: 2px solid #ddd;
+        }
+
+        .btn-clear:hover {
+            background: #e0e0e0;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 2px solid #28a745;
+        }
+
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 2px solid #f5c6cb;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            border-radius: 5px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: none;
+            animation: slideInRight 0.3s ease-out;
+            z-index: 1000;
+            max-width: 400px;
+        }
+
+        .toast.show {
+            display: block;
+        }
+
+        .toast-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 2px solid #28a745;
+        }
+
+        .toast-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 2px solid #f5c6cb;
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .alert-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 2px solid #bee5eb;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #667eea;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .info-box {
+            background-color: #f9f9f9;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .info-box strong {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>G-TECH COMPANY</h1>
+            <p>Customer Life Cycle</p>
+        </div>
+
+        <div id="messageAlert" class="alert"></div>
+
+        <div style="display: flex; gap: 20px; margin-bottom: 20px; border-bottom: 2px solid #ddd; padding-bottom: 20px;">
+            <button type="button" id="singleTabBtn" onclick="switchTab('single')" style="background: none; border: none; color: #667eea; font-weight: 600; cursor: pointer; border-bottom: 3px solid #667eea; padding-bottom: 10px;">Single Update</button>
+            <button type="button" id="bulkTabBtn" onclick="switchTab('bulk')" style="background: none; border: none; color: #999; font-weight: 600; cursor: pointer; padding-bottom: 10px;">Bulk Update</button>
+        </div>
+
+        <!-- Single Update Form -->
+        <div id="singleForm" style="display: block;">
+            <form id="statusForm">
+            <div class="form-group">
+                <label for="mobileNumber">Mobile Number *</label>
+                <input 
+                    type="text" 
+                    id="mobileNumber" 
+                    name="mobileNumber" 
+                    placeholder="Enter mobile number"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="statusValue">Status Value *</label>
+                <input 
+                    type="text" 
+                    id="statusValue" 
+                    name="statusValue" 
+                    placeholder="Enter status value"
+                    required
+                >
+            </div>
+
+            <div class="button-group">
+                <button type="submit" class="btn-update">Update Status</button>
+                <button type="reset" class="btn-clear">Clear</button>
+            </div>
+
+            <div class="loading" id="loadingSpinner">
+                <span class="spinner"></span>Processing...
+            </div>
+        </form>
+
+        <div class="info-box">
+            <strong>Note:</strong> Enter the mobile number and the status value you want to update in the GSM_MOBILE_MASTER table.
+        </div>
+        </div>
+
+        <!-- Bulk Update Form -->
+        <div id="bulkForm" style="display: none;">
+            <form id="bulkStatusForm">
+                <div class="form-group">
+                    <label for="bulkMobileNumbers">Mobile Numbers *</label>
+                    <textarea 
+                        id="bulkMobileNumbers" 
+                        name="bulkMobileNumbers" 
+                        placeholder="Enter mobile numbers separated by space or comma&#10;Example: 1234567890 9876543210&#10;Or: 1234567890, 9876543210"
+                        required
+                    ></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="bulkStatusValue">Status Value *</label>
+                    <input 
+                        type="text" 
+                        id="bulkStatusValue" 
+                        name="bulkStatusValue" 
+                        placeholder="Enter status value"
+                        required
+                    >
+                </div>
+
+                <div class="button-group">
+                    <button type="submit" class="btn-update">Update All</button>
+                    <button type="reset" class="btn-clear">Clear</button>
+                </div>
+
+                <div class="loading" id="bulkLoadingSpinner">
+                    <span class="spinner"></span>Processing...
+                </div>
+            </form>
+
+            <div class="info-box">
+                <strong>Note:</strong> Enter multiple mobile numbers separated by spaces or commas. All numbers will be updated to the same status value.
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        const statusForm = document.getElementById('statusForm');
+        const bulkStatusForm = document.getElementById('bulkStatusForm');
+        const messageAlert = document.getElementById('messageAlert');
+        const toast = document.getElementById('toast');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const bulkLoadingSpinner = document.getElementById('bulkLoadingSpinner');
+
+        // Tab switching function
+        function switchTab(tab) {
+            const singleForm = document.getElementById('singleForm');
+            const bulkForm = document.getElementById('bulkForm');
+            const singleTabBtn = document.getElementById('singleTabBtn');
+            const bulkTabBtn = document.getElementById('bulkTabBtn');
+
+            if (tab === 'single') {
+                singleForm.style.display = 'block';
+                bulkForm.style.display = 'none';
+                singleTabBtn.style.color = '#667eea';
+                singleTabBtn.style.borderBottom = '3px solid #667eea';
+                bulkTabBtn.style.color = '#999';
+                bulkTabBtn.style.borderBottom = 'none';
+            } else {
+                singleForm.style.display = 'none';
+                bulkForm.style.display = 'block';
+                bulkTabBtn.style.color = '#667eea';
+                bulkTabBtn.style.borderBottom = '3px solid #667eea';
+                singleTabBtn.style.color = '#999';
+                singleTabBtn.style.borderBottom = 'none';
+            }
+        }
+
+        // Show toast message
+        function showToast(message, type = 'info') {
+            toast.textContent = message;
+            toast.className = `toast show toast-${type}`;
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 5000);
+        }
+
+        // Show alert message (for form validation)
+        function showMessage(message, type = 'info') {
+            messageAlert.textContent = message;
+            messageAlert.className = `alert show alert-${type}`;
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                messageAlert.classList.remove('show');
+            }, 5000);
+        }
+
+        // Handle form submission
+        statusForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const mobileNumber = document.getElementById('mobileNumber').value.trim();
+            const statusValue = document.getElementById('statusValue').value.trim();
+
+            // Validation
+            if (!mobileNumber || !statusValue) {
+                showMessage('Please fill in all required fields', 'error');
+                return;
+            }
+
+            // Show loading spinner
+            loadingSpinner.style.display = 'block';
+            messageAlert.classList.remove('show');
+
+            try {
+                const response = await fetch('/api/update-status', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        mobileNumber: mobileNumber,
+                        statusValue: statusValue
+                    })
+                });
+
+                const data = await response.json();
+
+                loadingSpinner.style.display = 'none';
+
+                if (response.ok) {
+                    showToast(data.message, 'success');
+                    statusForm.reset();
+                } else {
+                    showToast(data.message, 'error');
+                }
+            } catch (error) {
+                loadingSpinner.style.display = 'none';
+                showToast('Error: ' + error.message, 'error');
+                console.error('Error:', error);
+            }
+        });
+
+        // Handle form reset
+        statusForm.addEventListener('reset', () => {
+            messageAlert.classList.remove('show');
+            toast.classList.remove('show');
+            loadingSpinner.style.display = 'none';
+        });
+
+        // Handle bulk form submission
+        bulkStatusForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const bulkMobileNumbers = document.getElementById('bulkMobileNumbers').value.trim();
+            const bulkStatusValue = document.getElementById('bulkStatusValue').value.trim();
+
+            // Validation
+            if (!bulkMobileNumbers || !bulkStatusValue) {
+                showMessage('Please fill in all required fields', 'error');
+                return;
+            }
+
+            // Parse mobile numbers (handle both space and comma separation)
+            const mobileNumbers = bulkMobileNumbers
+                .split(/[\s,]+/)
+                .filter(num => num.trim().length > 0)
+                .map(num => num.trim());
+
+            if (mobileNumbers.length === 0) {
+                showMessage('Please enter at least one mobile number', 'error');
+                return;
+            }
+
+            // Show loading spinner
+            bulkLoadingSpinner.style.display = 'block';
+            messageAlert.classList.remove('show');
+
+            try {
+                const response = await fetch('/api/bulk-update-status', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        mobileNumbers: mobileNumbers,
+                        statusValue: bulkStatusValue
+                    })
+                });
+
+                const data = await response.json();
+
+                bulkLoadingSpinner.style.display = 'none';
+
+                if (response.ok) {
+                    showToast(data.message, 'success');
+                    bulkStatusForm.reset();
+                } else {
+                    showToast(data.message, 'error');
+                }
+            } catch (error) {
+                bulkLoadingSpinner.style.display = 'none';
+                showToast('Error: ' + error.message, 'error');
+                console.error('Error:', error);
+            }
+        });
+
+        // Handle bulk form reset
+        bulkStatusForm.addEventListener('reset', () => {
+            messageAlert.classList.remove('show');
+            toast.classList.remove('show');
+            bulkLoadingSpinner.style.display = 'none';
+        });
+    </script>
+</body>
+</html>
