@@ -86,27 +86,79 @@ app.get('/api/health', async (req, res) => {
       });
     }
 
+    console.log(`[${new Date().toISOString()}] Health check: Attempting to get connection...`);
     const connection = await connectionPool.getConnection();
+    console.log(`[${new Date().toISOString()}] Health check: Connection obtained, running test query...`);
+    
+    // Try a simple query
+    const result = await connection.execute('SELECT 1 FROM DUAL');
     await connection.close();
     
     res.json({
       status: 'connected',
       database: dbConfig.connectString,
       user: dbConfig.user,
-      message: 'Database connection successful'
+      message: 'Database connection successful',
+      timestamp: new Date().toISOString()
     });
   } catch (err) {
+    console.error(`[${new Date().toISOString()}] Health check failed:`, err.message);
     res.status(503).json({
       status: 'error',
       message: 'Database connection failed: ' + err.message,
       database: dbConfig.connectString,
       user: dbConfig.user,
-      troubleshooting: [
-        'Verify database host is reachable: ' + dbConfig.connectString,
-        'Check if Oracle database service is running',
-        'Verify firewall allows connection to port',
-        'Confirm credentials are correct'
-      ]
+      errorCode: err.code,
+      suggestions: [
+        '1. Verify the database host is reachable: ping 172.168.101.103',
+        '2. Check if port 1512 is open: telnet 172.168.101.103 1512',
+        '3. Confirm Oracle database service is running',
+        '4. Verify firewall allows outbound connection to port 1512',
+        '5. Test credentials with SQL*Plus or another tool first',
+        '6. Ensure service name ZSSUAT is correct',
+        '7. Check if you need to use original database: 172.168.101.238:1521'
+      ],
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Fallback test endpoint - try original database
+app.get('/api/test-original-db', async (req, res) => {
+  const originalDb = '172.168.101.238:1521/PDB1';
+  const originalUser = 'CBS_DB_OPSUPP';
+  const originalPass = 'CBS_DB_OPSUPP';
+  
+  try {
+    console.log(`[${new Date().toISOString()}] Testing original database: ${originalDb}`);
+    
+    const testPool = await oracledb.createPool({
+      user: originalUser,
+      password: originalPass,
+      connectString: originalDb,
+      poolMax: 2,
+      poolMin: 1,
+      connectTimeout: 10
+    });
+    
+    const conn = await testPool.getConnection();
+    const result = await conn.execute('SELECT 1 FROM DUAL');
+    await conn.close();
+    await testPool.close();
+    
+    res.json({
+      status: 'connected',
+      message: 'Original database is reachable',
+      database: originalDb,
+      user: originalUser,
+      action: 'Use these credentials instead if current settings fail'
+    });
+  } catch (err) {
+    res.status(503).json({
+      status: 'error',
+      message: 'Original database also unreachable: ' + err.message,
+      database: originalDb,
+      error: err.code
     });
   }
 });
@@ -126,7 +178,9 @@ app.post('/api/update-status', async (req, res) => {
   let connection;
   try {
     // Get connection from pool
+    console.log(`[${new Date().toISOString()}] Getting connection from pool for mobile: ${mobileNumber}`);
     connection = await connectionPool.getConnection();
+    console.log(`[${new Date().toISOString()}] Connection obtained successfully`);
 
     // First, check the current status
     const selectQuery = `SELECT STATUS_V FROM CBS_CORE.GSM_MOBILE_MASTER 
