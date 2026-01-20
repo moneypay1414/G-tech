@@ -379,6 +379,132 @@ app.post('/api/update-sims-status', async (req, res) => {
   }
 });
 
+// API Route to update STATUS_V in GSM_SIMS_MASTER by SIM_NUM_V (supports comma or space separated entries)
+app.post('/api/update-sim-num-status', async (req, res) => {
+  const { simNum, statusValue } = req.body;
+
+  // Validation
+  if (!simNum || statusValue === undefined) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'SIM number (comma or space separated) and status value are required' 
+    });
+  }
+
+  let connection;
+  try {
+    // Parse input - support comma and space separated values
+    const simNumList = simNum
+      .split(/[,\s]+/) // Split by comma or space
+      .map(num => num.trim())
+      .filter(num => num.length > 0);
+
+    if (simNumList.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No valid SIM numbers provided'
+      });
+    }
+
+    console.log(`[${new Date().toISOString()}] Updating GSM_SIMS_MASTER by SIM_NUM_V for ${simNumList.length} SIM(s): ${simNumList.join(', ')}`);
+    
+    connection = await connectionPool.getConnection();
+    
+    let successCount = 0;
+    let restrictedCount = 0;
+    let failureCount = 0;
+    const failedSims = [];
+    
+    // Process each SIM number
+    for (const num of simNumList) {
+      try {
+        // First, check the current status
+        const selectQuery = `SELECT STATUS_V FROM CBS_CORE.GSM_SIMS_MASTER 
+                            WHERE SIM_NUM_V = :simNum`;
+        
+        const currentResult = await connection.execute(
+          selectQuery,
+          { simNum: num }
+        );
+
+        if (currentResult.rows.length === 0) {
+          failureCount++;
+          failedSims.push(`${num} (not found)`);
+          continue;
+        }
+
+        const currentStatus = currentResult.rows[0][0];
+
+        // Check if current status is 'A' (restricted)
+        if (currentStatus.toString().toUpperCase() === 'A') {
+          restrictedCount++;
+          failedSims.push(`${num} (status is A - cannot update)`);
+          continue;
+        }
+
+        // Update query for GSM_SIMS_MASTER by SIM_NUM_V
+        const updateQuery = `UPDATE CBS_CORE.GSM_SIMS_MASTER 
+                            SET STATUS_V = :statusValue 
+                            WHERE SIM_NUM_V = :simNum`;
+
+        const result = await connection.execute(
+          updateQuery,
+          {
+            statusValue: statusValue,
+            simNum: num
+          },
+          { autoCommit: true }
+        );
+
+        if (result.rowsAffected > 0) {
+          successCount++;
+          console.log(`[${new Date().toISOString()}] Updated SIM number ${num} status to ${statusValue}`);
+        } else {
+          failureCount++;
+          failedSims.push(`${num} (no rows affected)`);
+        }
+      } catch (err) {
+        failureCount++;
+        failedSims.push(`${num} (error: ${err.message})`);
+        console.error(`[${new Date().toISOString()}] Error updating SIM number ${num}:`, err.message);
+      }
+    }
+
+    let message = `Updated ${successCount} SIM number(s) successfully`;
+    if (restrictedCount > 0) message += ` | Skipped ${restrictedCount} SIM(s) with status A`;
+    if (failureCount > 0) {
+      message += ` | Failed: ${failureCount}`;
+      message += ` | Issues: ${failedSims.join('; ')}`;
+    }
+
+    res.json({
+      success: successCount > 0,
+      message: message,
+      summary: {
+        total: simNumList.length,
+        updated: successCount,
+        restricted: restrictedCount,
+        failed: failureCount
+      }
+    });
+
+  } catch (err) {
+    console.error('Database error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Database error: ' + err.message
+    });
+  } finally {
+    if (connection) {
+      try {
+        await connection.close();
+      } catch (err) {
+        console.error('Error closing connection:', err);
+      }
+    }
+  }
+});
+
 // API Route to get status (optional - for verification)
 app.get('/api/get-status/:mobileNumber', async (req, res) => {
   const { mobileNumber } = req.params;
