@@ -422,23 +422,33 @@
                     </div>
                 </form>
 
-                <!-- Details Display Area -->
-                <div id="detailsBox" style="display: none; background-color: #f9fafb; border-left: 4px solid #667eea; padding: 20px; border-radius: 8px; margin-top: 30px;">
+                <!-- Details Display Area - Table Format -->
+                <div id="detailsBox" style="display: none; margin-top: 30px;">
                     <strong style="color: #333; display: block; margin-bottom: 15px; font-size: 16px;">📋 Details</strong>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                        <div>
-                            <label style="color: #999; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 5px;">Mobile Number</label>
-                            <div id="detailMobileNumber" style="color: #333; font-weight: 600; font-size: 16px;">-</div>
-                        </div>
-                        <div>
-                            <label style="color: #999; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 5px;">Category Code</label>
-                            <div id="detailCategoryCode" style="color: #333; font-weight: 600; font-size: 16px;">-</div>
-                        </div>
-                        <div style="grid-column: 1 / -1;">
-                            <label style="color: #999; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 5px;">Status</label>
-                            <div id="detailStatus" style="color: #333; font-weight: 600; font-size: 16px; padding: 8px 12px; background: #e8f4f8; border-radius: 4px; display: inline-block;">-</div>
-                        </div>
-                    </div>
+                    <table style="width: 100%; border-collapse: collapse; background-color: white; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
+                        <thead>
+                            <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                                <th style="padding: 14px 16px; text-align: left; font-weight: 600; border-right: 1px solid rgba(255,255,255,0.2);">Field</th>
+                                <th style="padding: 14px 16px; text-align: left; font-weight: 600;">Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid #e0e0e0;">
+                                <td style="padding: 14px 16px; font-weight: 600; color: #666; background-color: #f9fafb; width: 35%;">Mobile Number</td>
+                                <td style="padding: 14px 16px; color: #333;" id="detailMobileNumber">-</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #e0e0e0;">
+                                <td style="padding: 14px 16px; font-weight: 600; color: #666; background-color: #f9fafb;">Category Code</td>
+                                <td style="padding: 14px 16px; color: #333;" id="detailCategoryCode">-</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 14px 16px; font-weight: 600; color: #666; background-color: #f9fafb;">Status</td>
+                                <td style="padding: 14px 16px; color: #333;">
+                                    <span id="detailStatus" style="padding: 6px 12px; background: #e8f4f8; color: #0c5460; border-radius: 4px; display: inline-block; font-weight: 600;">-</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
 
                 <div class="info-box">
