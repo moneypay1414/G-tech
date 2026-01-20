@@ -20,7 +20,7 @@
 
         .sidebar {
             width: 280px;
-            background: white;
+            background: #234C6A;
             box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
             padding: 40px 0;
             position: fixed;
@@ -37,13 +37,13 @@
 
         .sidebar-header h1 {
             font-size: 24px;
-            color: #333;
+            color: white;
             margin-bottom: 5px;
         }
 
         .sidebar-header p {
             font-size: 13px;
-            color: #999;
+            color: #b0c4de;
         }
 
         .nav-item {
@@ -51,21 +51,21 @@
             margin: 8px 15px;
             border-radius: 8px;
             cursor: pointer;
-            color: #666;
+            color: #b0c4de;
             font-weight: 500;
             transition: all 0.3s ease;
             border-left: 4px solid transparent;
         }
 
         .nav-item:hover {
-            background: #f5f5f5;
-            color: #667eea;
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
         }
 
         .nav-item.active {
-            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
-            color: #667eea;
-            border-left-color: #667eea;
+            background: rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+            border-left-color: #ffffff;
         }
 
         .main-content {
@@ -76,7 +76,7 @@
         }
 
         .container {
-            background: white;
+            background: #234C6A;
             border-radius: 15px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
             padding: 50px;
@@ -89,13 +89,13 @@
         }
 
         .header h2 {
-            color: #333;
+            color: white;
             font-size: 32px;
             margin-bottom: 10px;
         }
 
         .header p {
-            color: #999;
+            color: #b0c4de;
             font-size: 16px;
         }
 
@@ -106,7 +106,7 @@
         label {
             display: block;
             margin-bottom: 10px;
-            color: #333;
+            color: white;
             font-weight: 600;
             font-size: 15px;
         }
@@ -668,7 +668,7 @@
                 if (successCount > 0) {
                     const tableHTML = `
                         <strong style="color: #333; display: block; margin-bottom: 12px; font-size: 15px;">📋 Search Results</strong>
-                        <table style="width: 100%; border-collapse: collapse; background-color: white; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
+                        <table style="width: 100%; border-collapse: collapse; background-color: #234C6A; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
                             <thead>
                                 <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
                                     <th style="padding: 12px 14px; text-align: left; font-weight: 600; border-right: 1px solid rgba(255,255,255,0.2);">Mobile Number</th>
