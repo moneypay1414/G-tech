@@ -253,6 +253,132 @@ app.post('/api/update-status', async (req, res) => {
   }
 });
 
+// API Route to update STATUS_V in GSM_SIMS_MASTER (supports comma or space separated entries)
+app.post('/api/update-sims-status', async (req, res) => {
+  const { simIdentifier, statusValue } = req.body;
+
+  // Validation
+  if (!simIdentifier || statusValue === undefined) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'SIM identifier (comma or space separated) and status value are required' 
+    });
+  }
+
+  let connection;
+  try {
+    // Parse input - support comma and space separated values
+    const simList = simIdentifier
+      .split(/[,\s]+/) // Split by comma or space
+      .map(sim => sim.trim())
+      .filter(sim => sim.length > 0);
+
+    if (simList.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No valid SIM identifiers provided'
+      });
+    }
+
+    console.log(`[${new Date().toISOString()}] Updating GSM_SIMS_MASTER for ${simList.length} SIM(s): ${simList.join(', ')}`);
+    
+    connection = await connectionPool.getConnection();
+    
+    let successCount = 0;
+    let restrictedCount = 0;
+    let failureCount = 0;
+    const failedSims = [];
+    
+    // Process each SIM identifier
+    for (const sim of simList) {
+      try {
+        // First, check the current status
+        const selectQuery = `SELECT STATUS_V FROM CBS_CORE.GSM_SIMS_MASTER 
+                            WHERE SIM_IDENTIFIER_V = :simId`;
+        
+        const currentResult = await connection.execute(
+          selectQuery,
+          { simId: sim }
+        );
+
+        if (currentResult.rows.length === 0) {
+          failureCount++;
+          failedSims.push(`${sim} (not found)`);
+          continue;
+        }
+
+        const currentStatus = currentResult.rows[0][0];
+
+        // Check if current status is 'A' (restricted)
+        if (currentStatus.toString().toUpperCase() === 'A') {
+          restrictedCount++;
+          failedSims.push(`${sim} (status is A - cannot update)`);
+          continue;
+        }
+
+        // Update query for GSM_SIMS_MASTER
+        const updateQuery = `UPDATE CBS_CORE.GSM_SIMS_MASTER 
+                            SET STATUS_V = :statusValue 
+                            WHERE SIM_IDENTIFIER_V = :simId`;
+
+        const result = await connection.execute(
+          updateQuery,
+          {
+            statusValue: statusValue,
+            simId: sim
+          },
+          { autoCommit: true }
+        );
+
+        if (result.rowsAffected > 0) {
+          successCount++;
+          console.log(`[${new Date().toISOString()}] Updated SIM ${sim} status to ${statusValue}`);
+        } else {
+          failureCount++;
+          failedSims.push(`${sim} (no rows affected)`);
+        }
+      } catch (err) {
+        failureCount++;
+        failedSims.push(`${sim} (error: ${err.message})`);
+        console.error(`[${new Date().toISOString()}] Error updating SIM ${sim}:`, err.message);
+      }
+    }
+
+    let message = `Updated ${successCount} SIM(s) successfully`;
+    if (restrictedCount > 0) message += ` | Skipped ${restrictedCount} SIM(s) with status A`;
+    if (failureCount > 0) {
+      message += ` | Failed: ${failureCount}`;
+      message += ` | Issues: ${failedSims.join('; ')}`;
+    }
+
+    res.json({
+      success: successCount > 0,
+      message: message,
+      summary: {
+        total: simList.length,
+        updated: successCount,
+        restricted: restrictedCount,
+        failed: failureCount
+      }
+    });
+
+  } catch (err) {
+    console.error('Database error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Database error: ' + err.message
+    });
+  } finally {
+    if (connection) {
+      try {
+        await connection.close();
+      } catch (err) {
+        console.error('Error closing connection:', err);
+      }
+    }
+  }
+});
+
 // API Route to get status (optional - for verification)
 app.get('/api/get-status/:mobileNumber', async (req, res) => {
   const { mobileNumber } = req.params;
