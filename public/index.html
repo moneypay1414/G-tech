@@ -635,7 +635,8 @@
 
             try {
                 let successCount = 0;
-                const resultsHTML = [];
+                const tableRows = [];
+                const failedNumbers = [];
 
                 // Fetch details for each number
                 for (const mobileNumber of numberList) {
@@ -645,49 +646,53 @@
 
                         if (response.ok) {
                             successCount++;
-                            resultsHTML.push(`
-                                <div style="margin-bottom: 25px;">
-                                    <strong style="color: #333; display: block; margin-bottom: 12px; font-size: 15px;">📋 ${mobileNumber}</strong>
-                                    <table style="width: 100%; border-collapse: collapse; background-color: white; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
-                                        <thead>
-                                            <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-                                                <th style="padding: 12px 14px; text-align: left; font-weight: 600; border-right: 1px solid rgba(255,255,255,0.2);">Mobile Number</th>
-                                                <th style="padding: 12px 14px; text-align: left; font-weight: 600; border-right: 1px solid rgba(255,255,255,0.2);">Category Code</th>
-                                                <th style="padding: 12px 14px; text-align: left; font-weight: 600;">Status</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr style="border-bottom: 1px solid #e0e0e0;">
-                                                <td style="padding: 12px 14px; color: #333;">${data.data.mobileNumber || 'N/A'}</td>
-                                                <td style="padding: 12px 14px; color: #333;">${data.data.categoryCode || 'N/A'}</td>
-                                                <td style="padding: 12px 14px; color: #333;">
-                                                    <span style="padding: 5px 10px; background: #e8f4f8; color: #0c5460; border-radius: 4px; display: inline-block; font-weight: 600; font-size: 14px;">${data.data.status || 'N/A'}</span>
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
+                            tableRows.push(`
+                                <tr style="border-bottom: 1px solid #e0e0e0;">
+                                    <td style="padding: 12px 14px; color: #333;">${data.data.mobileNumber || 'N/A'}</td>
+                                    <td style="padding: 12px 14px; color: #333;">${data.data.categoryCode || 'N/A'}</td>
+                                    <td style="padding: 12px 14px; color: #333;">
+                                        <span style="padding: 5px 10px; background: #e8f4f8; color: #0c5460; border-radius: 4px; display: inline-block; font-weight: 600; font-size: 14px;">${data.data.status || 'N/A'}</span>
+                                    </td>
+                                </tr>
                             `);
                         } else {
-                            resultsHTML.push(`
-                                <div style="margin-bottom: 25px; padding: 14px 16px; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 8px; color: #721c24;">
-                                    <strong>${mobileNumber}:</strong> ${data.message || 'No record found'}
-                                </div>
-                            `);
+                            failedNumbers.push(`${mobileNumber}: ${data.message || 'No record found'}`);
                         }
                     } catch (error) {
-                        resultsHTML.push(`
-                            <div style="margin-bottom: 25px; padding: 14px 16px; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 8px; color: #721c24;">
-                                <strong>${mobileNumber}:</strong> Error: ${error.message}
-                            </div>
-                        `);
+                        failedNumbers.push(`${mobileNumber}: Error - ${error.message}`);
                     }
                 }
 
                 document.getElementById('viewLoadingSpinner').style.display = 'none';
 
                 if (successCount > 0) {
-                    document.getElementById('detailsBox').innerHTML = resultsHTML.join('');
+                    const tableHTML = `
+                        <strong style="color: #333; display: block; margin-bottom: 12px; font-size: 15px;">📋 Search Results</strong>
+                        <table style="width: 100%; border-collapse: collapse; background-color: white; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
+                            <thead>
+                                <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                                    <th style="padding: 12px 14px; text-align: left; font-weight: 600; border-right: 1px solid rgba(255,255,255,0.2);">Mobile Number</th>
+                                    <th style="padding: 12px 14px; text-align: left; font-weight: 600; border-right: 1px solid rgba(255,255,255,0.2);">Category Code</th>
+                                    <th style="padding: 12px 14px; text-align: left; font-weight: 600;">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${tableRows.join('')}
+                            </tbody>
+                        </table>
+                    `;
+                    
+                    let fullHTML = tableHTML;
+                    if (failedNumbers.length > 0) {
+                        fullHTML += `<div style="margin-top: 20px; padding: 14px 16px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; color: #856404;">
+                            <strong>⚠️ Issues with ${failedNumbers.length} number(s):</strong>
+                            <ul style="margin-top: 8px; margin-bottom: 0; padding-left: 20px;">
+                                ${failedNumbers.map(num => `<li>${num}</li>`).join('')}
+                            </ul>
+                        </div>`;
+                    }
+                    
+                    document.getElementById('detailsBox').innerHTML = fullHTML;
                     document.getElementById('detailsBox').style.display = 'block';
                     showMessage(`Retrieved details for ${successCount} of ${numberList.length} number(s)`, 'success', 'viewMessageAlert');
                 } else {
