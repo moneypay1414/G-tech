@@ -7,6 +7,12 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Configure Oracle DB timeout settings
+oracledb.connectionClass = 'POOLED';
+oracledb.poolMax = 10;
+oracledb.poolMin = 2;
+oracledb.getConnectionTimeout = 120; // Increased to 120 seconds
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -30,8 +36,16 @@ async function initializePool() {
       connectString: dbConfig.connectString,
       poolMax: 10,
       poolMin: 2,
-      poolIncrement: 1
+      poolIncrement: 1,
+      connectionClass: 'POOLED',
+      waitTimeout: 60000,
+      enableStatistics: false,
+      _enableOracleClientV12: true,
+      accessToken: undefined,
+      externalAuth: false
     });
+    // Set connection timeout for individual connections
+    oracledb.connectionString = dbConfig.connectString;
     console.log('Oracle Connection Pool Created Successfully');
   } catch (err) {
     console.error('Error creating connection pool:', err);
