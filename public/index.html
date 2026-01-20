@@ -374,7 +374,10 @@
         </div>
 
         <nav>
-            <div class="nav-item active" onclick="switchTab('mobile')">
+            <div class="nav-item active" onclick="switchTab('view')">
+                <span>🔍 View Details</span>
+            </div>
+            <div class="nav-item" onclick="switchTab('mobile')">
                 <span>📱 Mobile Update</span>
             </div>
             <div class="nav-item" onclick="switchTab('bulk')">
@@ -389,8 +392,63 @@
     <!-- Main Content -->
     <div class="main-content">
         <div class="container">
+            <!-- View Mobile Details Section -->
+            <div id="viewSection" class="form-section active">
+                <div class="header">
+                    <h2>View Mobile Details</h2>
+                    <p>Search for mobile number information</p>
+                </div>
+
+                <div id="viewMessageAlert" class="alert"></div>
+
+                <form id="viewForm">
+                    <div class="form-group">
+                        <label for="searchMobileNumber">Mobile Number *</label>
+                        <input 
+                            type="text" 
+                            id="searchMobileNumber" 
+                            placeholder="Enter mobile number"
+                            required
+                        >
+                    </div>
+
+                    <div class="button-group">
+                        <button type="submit" class="btn-update">Search</button>
+                        <button type="reset" class="btn-clear">Clear</button>
+                    </div>
+
+                    <div class="loading" id="viewLoadingSpinner">
+                        <span class="spinner"></span>Searching...
+                    </div>
+                </form>
+
+                <!-- Details Display Area -->
+                <div id="detailsBox" style="display: none; background-color: #f9fafb; border-left: 4px solid #667eea; padding: 20px; border-radius: 8px; margin-top: 30px;">
+                    <strong style="color: #333; display: block; margin-bottom: 15px; font-size: 16px;">📋 Details</strong>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div>
+                            <label style="color: #999; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 5px;">Mobile Number</label>
+                            <div id="detailMobileNumber" style="color: #333; font-weight: 600; font-size: 16px;">-</div>
+                        </div>
+                        <div>
+                            <label style="color: #999; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 5px;">Category Code</label>
+                            <div id="detailCategoryCode" style="color: #333; font-weight: 600; font-size: 16px;">-</div>
+                        </div>
+                        <div style="grid-column: 1 / -1;">
+                            <label style="color: #999; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 5px;">Status</label>
+                            <div id="detailStatus" style="color: #333; font-weight: 600; font-size: 16px; padding: 8px 12px; background: #e8f4f8; border-radius: 4px; display: inline-block;">-</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <strong>ℹ️ Information</strong>
+                    Enter a mobile number to view its details including Mobile Number, Category Code, and Status from the GSM_MOBILE_MASTER table.
+                </div>
+            </div>
+
             <!-- Mobile Update Section -->
-            <div id="mobileSection" class="form-section active">
+            <div id="mobileSection" class="form-section">
                 <div class="header">
                     <h2>Mobile Number</h2>
                     <p>Update GSM_MOBILE_MASTER status</p>
@@ -533,6 +591,7 @@
         const statusForm = document.getElementById('statusForm');
         const bulkStatusForm = document.getElementById('bulkStatusForm');
         const simUpdateForm = document.getElementById('simUpdateForm');
+        const viewForm = document.getElementById('viewForm');
         const toast = document.getElementById('toast');
 
         function switchTab(tab) {
@@ -540,6 +599,7 @@
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
 
             const sectionMap = {
+                'view': 'viewSection',
                 'mobile': 'mobileSection',
                 'bulk': 'bulkSection',
                 'sim': 'simSection'
@@ -563,6 +623,39 @@
             alert.className = `alert show alert-${type}`;
             setTimeout(() => alert.classList.remove('show'), 5000);
         }
+
+        // View Mobile Details Handler
+        viewForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const mobileNumber = document.getElementById('searchMobileNumber').value.trim();
+
+            if (!mobileNumber) {
+                showMessage('Please enter a mobile number', 'error', 'viewMessageAlert');
+                return;
+            }
+
+            document.getElementById('viewLoadingSpinner').style.display = 'block';
+            document.getElementById('detailsBox').style.display = 'none';
+
+            try {
+                const response = await fetch(`/api/get-mobile-details/${encodeURIComponent(mobileNumber)}`);
+                const data = await response.json();
+                document.getElementById('viewLoadingSpinner').style.display = 'none';
+
+                if (response.ok) {
+                    document.getElementById('detailMobileNumber').textContent = data.data.mobileNumber || 'N/A';
+                    document.getElementById('detailCategoryCode').textContent = data.data.categoryCode || 'N/A';
+                    document.getElementById('detailStatus').textContent = data.data.status || 'N/A';
+                    document.getElementById('detailsBox').style.display = 'block';
+                    showMessage('Details retrieved successfully', 'success', 'viewMessageAlert');
+                } else {
+                    showMessage(data.message || 'No record found', 'error', 'viewMessageAlert');
+                }
+            } catch (error) {
+                document.getElementById('viewLoadingSpinner').style.display = 'none';
+                showMessage('Error: ' + error.message, 'error', 'viewMessageAlert');
+            }
+        });
 
         statusForm.addEventListener('submit', async (e) => {
             e.preventDefault();

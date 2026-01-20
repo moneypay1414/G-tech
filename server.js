@@ -505,6 +505,52 @@ app.post('/api/update-sim-num-status', async (req, res) => {
   }
 });
 
+// API Route to get mobile number details
+app.get('/api/get-mobile-details/:mobileNumber', async (req, res) => {
+  const { mobileNumber } = req.params;
+
+  let connection;
+  try {
+    connection = await connectionPool.getConnection();
+
+    const query = `SELECT MOBILE_NUMBER_V, CATEGORY_CODE_V, STATUS_V FROM CBS_CORE.GSM_MOBILE_MASTER 
+                   WHERE MOBILE_NUMBER_V = :mobileNumber`;
+
+    const result = await connection.execute(query, { mobileNumber: mobileNumber });
+
+    if (result.rows.length > 0) {
+      res.json({
+        success: true,
+        data: {
+          mobileNumber: result.rows[0][0],
+          categoryCode: result.rows[0][1],
+          status: result.rows[0][2]
+        }
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        message: `No record found for mobile number: ${mobileNumber}`
+      });
+    }
+
+  } catch (err) {
+    console.error('Database error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Database error: ' + err.message
+    });
+  } finally {
+    if (connection) {
+      try {
+        await connection.close();
+      } catch (err) {
+        console.error('Error closing connection:', err);
+      }
+    }
+  }
+});
+
 // API Route to get status (optional - for verification)
 app.get('/api/get-status/:mobileNumber', async (req, res) => {
   const { mobileNumber } = req.params;
