@@ -47,7 +47,7 @@ async function initializePool() {
       _enableOracleClientV12: true,
       accessToken: undefined,
       externalAuth: false,
-      connectTimeout: 30
+      connectTimeout: 120
     });
     poolRetries = 0;
     console.log('[' + new Date().toISOString() + '] Oracle Connection Pool Created Successfully');
