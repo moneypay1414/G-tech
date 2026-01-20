@@ -27,9 +27,13 @@ const dbConfig = {
 
 // Initialize Oracle connection pool
 let connectionPool;
+let poolRetries = 0;
+const MAX_RETRIES = 3;
 
 async function initializePool() {
   try {
+    console.log(`[${new Date().toISOString()}] Attempting to connect to Oracle DB: ${dbConfig.connectString}`);
+    
     connectionPool = await oracledb.createPool({
       user: dbConfig.user,
       password: dbConfig.password,
@@ -42,20 +46,69 @@ async function initializePool() {
       enableStatistics: false,
       _enableOracleClientV12: true,
       accessToken: undefined,
-      externalAuth: false
+      externalAuth: false,
+      connectTimeout: 30
     });
-    // Set connection timeout for individual connections
-    oracledb.connectionString = dbConfig.connectString;
-    console.log('Oracle Connection Pool Created Successfully');
+    poolRetries = 0;
+    console.log('[' + new Date().toISOString() + '] Oracle Connection Pool Created Successfully');
   } catch (err) {
-    console.error('Error creating connection pool:', err);
-    process.exit(1);
+    console.error('[' + new Date().toISOString() + '] Error creating connection pool:', err.message);
+    
+    // Retry logic
+    if (poolRetries < MAX_RETRIES) {
+      poolRetries++;
+      console.log(`[${new Date().toISOString()}] Retrying connection (${poolRetries}/${MAX_RETRIES}) in 5 seconds...`);
+      setTimeout(initializePool, 5000);
+    } else {
+      console.error(`[${new Date().toISOString()}] Max retries (${MAX_RETRIES}) exceeded. Exiting.`);
+      console.error(`[${new Date().toISOString()}] Please verify:
+        1. Database host is reachable: ${dbConfig.connectString}
+        2. Database service is running
+        3. Firewall allows port 1512
+        4. Credentials are correct (User: ${dbConfig.user})`);
+      process.exit(1);
+    }
   }
 }
 
 // Route to serve the main page
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Diagnostic endpoint to check connection status
+app.get('/api/health', async (req, res) => {
+  try {
+    if (!connectionPool) {
+      return res.status(503).json({
+        status: 'disconnected',
+        message: 'Connection pool not initialized'
+      });
+    }
+
+    const connection = await connectionPool.getConnection();
+    await connection.close();
+    
+    res.json({
+      status: 'connected',
+      database: dbConfig.connectString,
+      user: dbConfig.user,
+      message: 'Database connection successful'
+    });
+  } catch (err) {
+    res.status(503).json({
+      status: 'error',
+      message: 'Database connection failed: ' + err.message,
+      database: dbConfig.connectString,
+      user: dbConfig.user,
+      troubleshooting: [
+        'Verify database host is reachable: ' + dbConfig.connectString,
+        'Check if Oracle database service is running',
+        'Verify firewall allows connection to port',
+        'Confirm credentials are correct'
+      ]
+    });
+  }
 });
 
 // API Route to update STATUS_V
