@@ -265,6 +265,7 @@
         <div style="display: flex; gap: 20px; margin-bottom: 20px; border-bottom: 2px solid #ddd; padding-bottom: 20px;">
             <button type="button" id="singleTabBtn" onclick="switchTab('single')" style="background: none; border: none; color: #667eea; font-weight: 600; cursor: pointer; border-bottom: 3px solid #667eea; padding-bottom: 10px;">Single Update</button>
             <button type="button" id="bulkTabBtn" onclick="switchTab('bulk')" style="background: none; border: none; color: #999; font-weight: 600; cursor: pointer; padding-bottom: 10px;">Bulk Update</button>
+            <button type="button" id="simTabBtn" onclick="switchTab('sim')" style="background: none; border: none; color: #999; font-weight: 600; cursor: pointer; padding-bottom: 10px;">SIM Update</button>
         </div>
 
         <!-- Single Update Form -->
@@ -345,6 +346,45 @@
                 <strong>Note:</strong> Enter multiple mobile numbers separated by spaces or commas. All numbers will be updated to the same status value.
             </div>
         </div>
+
+        <!-- SIM Update Form -->
+        <div id="simForm" style="display: none;">
+            <form id="simUpdateForm">
+                <div class="form-group">
+                    <label for="simNumbers">SIM Numbers *</label>
+                    <textarea 
+                        id="simNumbers" 
+                        name="simNumbers" 
+                        placeholder="Enter SIM numbers separated by space or comma&#10;Example: 12345 67890&#10;Or: 12345, 67890"
+                        required
+                    ></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="simStatusValue">Status Value *</label>
+                    <input 
+                        type="text" 
+                        id="simStatusValue" 
+                        name="simStatusValue" 
+                        placeholder="Enter status value"
+                        required
+                    >
+                </div>
+
+                <div class="button-group">
+                    <button type="submit" class="btn-update">Update SIMs</button>
+                    <button type="reset" class="btn-clear">Clear</button>
+                </div>
+
+                <div class="loading" id="simLoadingSpinner">
+                    <span class="spinner"></span>Processing...
+                </div>
+            </form>
+
+            <div class="info-box">
+                <strong>Note:</strong> Enter multiple SIM numbers separated by spaces or commas. All SIM numbers will be updated to the same status value in GSM_SIMS_MASTER table.
+            </div>
+        </div>
     </div>
 
     <div id="toast" class="toast"></div>
@@ -352,32 +392,46 @@
     <script>
         const statusForm = document.getElementById('statusForm');
         const bulkStatusForm = document.getElementById('bulkStatusForm');
+        const simUpdateForm = document.getElementById('simUpdateForm');
         const messageAlert = document.getElementById('messageAlert');
         const toast = document.getElementById('toast');
         const loadingSpinner = document.getElementById('loadingSpinner');
         const bulkLoadingSpinner = document.getElementById('bulkLoadingSpinner');
+        const simLoadingSpinner = document.getElementById('simLoadingSpinner');
 
         // Tab switching function
         function switchTab(tab) {
             const singleForm = document.getElementById('singleForm');
             const bulkForm = document.getElementById('bulkForm');
+            const simForm = document.getElementById('simForm');
             const singleTabBtn = document.getElementById('singleTabBtn');
             const bulkTabBtn = document.getElementById('bulkTabBtn');
+            const simTabBtn = document.getElementById('simTabBtn');
 
+            // Reset all tabs
+            singleForm.style.display = 'none';
+            bulkForm.style.display = 'none';
+            simForm.style.display = 'none';
+            singleTabBtn.style.color = '#999';
+            singleTabBtn.style.borderBottom = 'none';
+            bulkTabBtn.style.color = '#999';
+            bulkTabBtn.style.borderBottom = 'none';
+            simTabBtn.style.color = '#999';
+            simTabBtn.style.borderBottom = 'none';
+
+            // Show selected tab
             if (tab === 'single') {
                 singleForm.style.display = 'block';
-                bulkForm.style.display = 'none';
                 singleTabBtn.style.color = '#667eea';
                 singleTabBtn.style.borderBottom = '3px solid #667eea';
-                bulkTabBtn.style.color = '#999';
-                bulkTabBtn.style.borderBottom = 'none';
-            } else {
-                singleForm.style.display = 'none';
+            } else if (tab === 'bulk') {
                 bulkForm.style.display = 'block';
                 bulkTabBtn.style.color = '#667eea';
                 bulkTabBtn.style.borderBottom = '3px solid #667eea';
-                singleTabBtn.style.color = '#999';
-                singleTabBtn.style.borderBottom = 'none';
+            } else if (tab === 'sim') {
+                simForm.style.display = 'block';
+                simTabBtn.style.color = '#667eea';
+                simTabBtn.style.borderBottom = '3px solid #667eea';
             }
         }
 
@@ -518,6 +572,70 @@
             messageAlert.classList.remove('show');
             toast.classList.remove('show');
             bulkLoadingSpinner.style.display = 'none';
+        });
+
+        // Handle SIM form submission
+        simUpdateForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const simNumbers = document.getElementById('simNumbers').value.trim();
+            const simStatusValue = document.getElementById('simStatusValue').value.trim();
+
+            // Validation
+            if (!simNumbers || !simStatusValue) {
+                showMessage('Please fill in all required fields', 'error');
+                return;
+            }
+
+            // Parse SIM numbers (handle both space and comma separation)
+            const simNumList = simNumbers
+                .split(/[\s,]+/)
+                .filter(num => num.trim().length > 0)
+                .map(num => num.trim());
+
+            if (simNumList.length === 0) {
+                showMessage('Please enter at least one SIM number', 'error');
+                return;
+            }
+
+            // Show loading spinner
+            simLoadingSpinner.style.display = 'block';
+            messageAlert.classList.remove('show');
+
+            try {
+                const response = await fetch('/api/update-sim-num-status', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        simNum: simNumbers,
+                        statusValue: simStatusValue
+                    })
+                });
+
+                const data = await response.json();
+
+                simLoadingSpinner.style.display = 'none';
+
+                if (response.ok) {
+                    showToast(data.message, 'success');
+                    simUpdateForm.reset();
+                } else {
+                    showToast(data.message, 'error');
+                }
+            } catch (error) {
+                simLoadingSpinner.style.display = 'none';
+                showToast('Error: ' + error.message, 'error');
+                console.error('Error:', error);
+            }
+        });
+
+        // Handle SIM form reset
+        simUpdateForm.addEventListener('reset', () => {
+            messageAlert.classList.remove('show');
+            toast.classList.remove('show');
+            simLoadingSpinner.style.display = 'none';
         });
     </script>
 </body>
