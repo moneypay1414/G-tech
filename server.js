@@ -38,8 +38,10 @@ const emailConfig = {
 // Initialize email transporter
 const transporter = nodemailer.createTransport(emailConfig);
 
-// Restricted numbers directly hardcoded
-const restrictedNumbers = ['9123', '9121', '9122'];
+// ===== RESTRICTED NUMBERS CONFIGURATION =====
+// Numbers that cannot be freed/updated
+const RESTRICTED_NUMBERS = ['9123', '9121', '9122'];
+// ============================================
 
 // Helper: normalize numbers to digits-only and match prefixes considering common variants
 function normalizeNumber(s) {
@@ -319,7 +321,7 @@ app.post('/api/update-status', async (req, res) => {
     const restrictedCurrentStatuses = ['A', 'Z', 'N'];
 
     // Check if current status is restricted or the mobile number matches a restricted prefix
-    const isRestrictedExact = restrictedNumbers.some(prefix => matchesExact(mobileNumber, prefix));
+    const isRestrictedExact = RESTRICTED_NUMBERS.some(prefix => matchesExact(mobileNumber, prefix));
     if (restrictedCurrentStatuses.includes(currentStatus.toString().toUpperCase()) || isRestrictedExact) {
       return res.status(400).json({
         success: false,
@@ -428,7 +430,7 @@ app.post('/api/update-sims-status', async (req, res) => {
         const currentStatus = currentResult.rows[0][0];
 
         // Check if current status is 'A' (restricted) or SIM matches a restricted prefix
-        const isSimRestrictedExact = restrictedNumbers.some(prefix => matchesExact(sim, prefix));
+        const isSimRestrictedExact = RESTRICTED_NUMBERS.some(prefix => matchesExact(sim, prefix));
         if (currentStatus.toString().toUpperCase() === 'A' || isSimRestrictedExact) {
           restrictedCount++;
           failedSims.push(`${sim} (restricted - cannot update)`);
@@ -584,7 +586,7 @@ app.post('/api/update-sim-num-status', async (req, res) => {
         const currentStatus = currentResult.rows[0][0];
 
         // Check if current status is 'A' (restricted) or SIM number matches a restricted prefix
-        const isNumRestrictedExact = restrictedNumbers.some(prefix => matchesExact(num, prefix));
+        const isNumRestrictedExact = RESTRICTED_NUMBERS.some(prefix => matchesExact(num, prefix));
         if (currentStatus.toString().toUpperCase() === 'A' || isNumRestrictedExact) {
           restrictedCount++;
           failedSims.push(`${num} (restricted - cannot update)`);
@@ -810,7 +812,7 @@ app.post('/api/bulk-update-status', async (req, res) => {
         const restrictedCurrentStatuses = ['A', 'Z', 'N'];
 
         // Check if current status is restricted or mobile number matches a restricted prefix
-        const isMobileRestrictedExact = restrictedNumbers.some(prefix => matchesExact(mobileNumber, prefix));
+        const isMobileRestrictedExact = RESTRICTED_NUMBERS.some(prefix => matchesExact(mobileNumber, prefix));
         if (restrictedCurrentStatuses.includes(currentStatus.toString().toUpperCase()) || isMobileRestrictedExact) {
           restrictedCount++;
           failedNumbers.push(`${mobileNumber} - Restricted status (${currentStatus})`);
