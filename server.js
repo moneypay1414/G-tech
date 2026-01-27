@@ -3,6 +3,7 @@ const oracledb = require('oracledb');
 const cors = require('cors');
 require('dotenv').config();
 const path = require('path');
+const nodemailer = require('nodemailer');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -24,6 +25,62 @@ const dbConfig = {
   password: process.env.DB_PASSWORD || 'CBS_DB_OPSUPP',
   connectString: `${process.env.DB_HOST || '172.168.101.238'}:${process.env.DB_PORT || 1521}/${process.env.DB_SERVICE || 'PDB1'}`
 };
+
+// Email Configuration
+const emailConfig = {
+  service: process.env.EMAIL_HOST || 'Gmail',
+  auth: {
+    user: process.env.EMAIL_USER || 'your-email@gmail.com',
+    pass: process.env.EMAIL_PASSWORD || 'your-app-password'
+  }
+};
+
+// Initialize email transporter
+const transporter = nodemailer.createTransport(emailConfig);
+
+// Test email configuration on startup
+async function testEmailConfig() {
+  try {
+    console.log(`[${new Date().toISOString()}] Testing email configuration...`);
+    console.log(`[${new Date().toISOString()}] Email Config: Service=${emailConfig.service}, User=${emailConfig.auth.user}`);
+    
+    await transporter.verify();
+    console.log(`[${new Date().toISOString()}] ✓ Email configuration verified successfully!`);
+    return true;
+  } catch (err) {
+    console.error(`[${new Date().toISOString()}] ✗ Email configuration warning:`, err.message);
+    console.log(`[${new Date().toISOString()}] Server will continue running. Email notifications may not work.`);
+    console.log(`[${new Date().toISOString()}] Check /api/test-email endpoint for detailed diagnostics.`);
+    return false;
+  }
+}
+
+// Function to send email notification
+async function sendEmailNotification(subject, htmlContent, recipientEmail = 'BSS_OPS@ss.zain.com') {
+  try {
+    const mailOptions = {
+      from: process.env.EMAIL_FROM || emailConfig.auth.user,
+      to: recipientEmail,
+      subject: subject,
+      html: htmlContent
+    };
+
+    console.log(`[${new Date().toISOString()}] Attempting to send email to ${recipientEmail}...`);
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`[${new Date().toISOString()}] ✓ Email sent successfully to ${recipientEmail}`);
+    console.log(`[${new Date().toISOString()}] Response:`, info.response);
+    return true;
+  } catch (err) {
+    console.error(`[${new Date().toISOString()}] ✗ Failed to send email to ${recipientEmail}`);
+    console.error(`[${new Date().toISOString()}] Error details:`, err.message);
+    console.error(`[${new Date().toISOString()}] Please verify:
+      1. App Password is correct (run /api/test-email for diagnostics)
+      2. 2-Step Verification is enabled on Gmail account
+      3. Email configuration in .env is correct
+      4. Firewall allows SMTP on port 587`);
+    return false;
+  }
+}
 
 // Initialize Oracle connection pool
 let connectionPool;
@@ -159,6 +216,41 @@ app.get('/api/test-original-db', async (req, res) => {
       message: 'Original database also unreachable: ' + err.message,
       database: originalDb,
       error: err.code
+    });
+  }
+});
+
+// Test email configuration endpoint
+app.get('/api/test-email', async (req, res) => {
+  try {
+    console.log(`[${new Date().toISOString()}] Testing email configuration...`);
+    await transporter.verify();
+    
+    res.json({
+      status: 'success',
+      message: 'Email configuration is valid',
+      emailConfig: {
+        service: emailConfig.service,
+        user: emailConfig.auth.user,
+        from: process.env.EMAIL_FROM || emailConfig.auth.user
+      }
+    });
+  } catch (err) {
+    console.error(`[${new Date().toISOString()}] Email test failed:`, err.message);
+    res.status(503).json({
+      status: 'error',
+      message: 'Email configuration error: ' + err.message,
+      suggestions: [
+        '1. Verify EMAIL_USER and EMAIL_PASSWORD in .env file',
+        '2. Password should be exactly: xwtw hopa upef zmre (with spaces)',
+        '3. Email should be: gabrielgmf98@gmail.com',
+        '4. Check firewall allows outbound SMTP',
+        '5. Restart the server after updating .env'
+      ],
+      emailConfig: {
+        service: emailConfig.service,
+        user: emailConfig.auth.user
+      }
     });
   }
 });
@@ -351,6 +443,35 @@ app.post('/api/update-sims-status', async (req, res) => {
       message += ` | Issues: ${failedSims.join('; ')}`;
     }
 
+    // Send email notification if any SIMs were updated
+    if (successCount > 0) {
+      const emailSubject = `SIM Status Update Notification - ${successCount} SIM(s) Updated`;
+      const emailHtml = `
+        <h2>SIM Status Update Report</h2>
+        <p><strong>Timestamp:</strong> ${new Date().toISOString()}</p>
+        <p><strong>Total SIMs Processed:</strong> ${simList.length}</p>
+        <p><strong>Successfully Updated:</strong> ${successCount}</p>
+        <p><strong>Status Updated to:</strong> ${statusValue}</p>
+        <p><strong>Restricted (Not Updated):</strong> ${restrictedCount}</p>
+        <p><strong>Failed:</strong> ${failureCount}</p>
+        ${failureCount > 0 ? `<p><strong>Failed SIMs:</strong> ${failedSims.join(', ')}</p>` : ''}
+        <p><strong>Updated SIMs:</strong></p>
+        <ul>
+          ${simList.filter((sim, index) => {
+            // Count how many were processed before this one
+            let count = 0;
+            for (let i = 0; i < index; i++) {
+              if (!failedSims.some(failed => failed.startsWith(simList[i]))) {
+                count++;
+              }
+            }
+            return !failedSims.some(failed => failed.startsWith(sim));
+          }).map(sim => `<li>${sim}</li>`).join('')}
+        </ul>
+      `;
+      await sendEmailNotification(emailSubject, emailHtml);
+    }
+
     res.json({
       success: successCount > 0,
       message: message,
@@ -475,6 +596,28 @@ app.post('/api/update-sim-num-status', async (req, res) => {
     if (failureCount > 0) {
       message += ` | Failed: ${failureCount}`;
       message += ` | Issues: ${failedSims.join('; ')}`;
+    }
+
+    // Send email notification if any SIMs were updated
+    if (successCount > 0) {
+      const emailSubject = `SIM Status Update Notification - ${successCount} SIM(s) Updated (by SIM Number)`;
+      const emailHtml = `
+        <h2>SIM Status Update Report</h2>
+        <p><strong>Timestamp:</strong> ${new Date().toISOString()}</p>
+        <p><strong>Total SIMs Processed:</strong> ${simNumList.length}</p>
+        <p><strong>Successfully Updated:</strong> ${successCount}</p>
+        <p><strong>Status Updated to:</strong> ${statusValue}</p>
+        <p><strong>Restricted (Not Updated):</strong> ${restrictedCount}</p>
+        <p><strong>Failed:</strong> ${failureCount}</p>
+        ${failureCount > 0 ? `<p><strong>Failed SIMs:</strong> ${failedSims.join(', ')}</p>` : ''}
+        <p><strong>Updated SIM Numbers:</strong></p>
+        <ul>
+          ${simNumList.filter((num, index) => {
+            return !failedSims.some(failed => failed.startsWith(num));
+          }).map(num => `<li>${num}</li>`).join('')}
+        </ul>
+      `;
+      await sendEmailNotification(emailSubject, emailHtml);
     }
 
     res.json({
@@ -677,6 +820,29 @@ app.post('/api/bulk-update-status', async (req, res) => {
       message += ` | Issues: ${failedNumbers.join('; ')}`;
     }
 
+    // Send email notification if any mobile numbers were updated
+    if (successCount > 0) {
+      const emailSubject = `SIM Status Update Notification - ${successCount} Mobile(s) Updated`;
+      const updatedMobiles = mobileNumbers.filter(num => 
+        !failedNumbers.some(failed => failed.startsWith(num.trim()))
+      );
+      const emailHtml = `
+        <h2>SIM Status Update Report</h2>
+        <p><strong>Timestamp:</strong> ${new Date().toISOString()}</p>
+        <p><strong>Total Mobiles Processed:</strong> ${mobileNumbers.length}</p>
+        <p><strong>Successfully Updated:</strong> ${successCount}</p>
+        <p><strong>Status Updated to:</strong> ${statusValue}</p>
+        <p><strong>Restricted (Not Updated):</strong> ${restrictedCount}</p>
+        <p><strong>Failed:</strong> ${failureCount}</p>
+        ${failureCount > 0 ? `<p><strong>Failed Numbers:</strong> ${failedNumbers.join(', ')}</p>` : ''}
+        <p><strong>Updated Mobile Numbers:</strong></p>
+        <ul>
+          ${updatedMobiles.map(num => `<li>${num.trim()}</li>`).join('')}
+        </ul>
+      `;
+      await sendEmailNotification(emailSubject, emailHtml);
+    }
+
     res.json({
       success: successCount > 0,
       message: message,
@@ -708,6 +874,7 @@ app.post('/api/bulk-update-status', async (req, res) => {
 // Start the server
 app.listen(PORT, async () => {
   await initializePool();
+  await testEmailConfig();
   console.log(`Server is running on http://localhost:${PORT}`);
 });
 
