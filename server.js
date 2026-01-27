@@ -38,10 +38,8 @@ const emailConfig = {
 // Initialize email transporter
 const transporter = nodemailer.createTransport(emailConfig);
 
-// Parse restricted numbers/prefixes from environment (comma or space separated)
-const restrictedNumbers = process.env.RESTRICTED_NUMBERS
-  ? process.env.RESTRICTED_NUMBERS.split(/[,\s]+/).map(s => s.trim()).filter(Boolean)
-  : [];
+// Restricted numbers directly hardcoded
+const restrictedNumbers = ['9123', '91211', '9122'];
 
 // Helper: normalize numbers to digits-only and match prefixes considering common variants
 function normalizeNumber(s) {
