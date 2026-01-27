@@ -39,7 +39,7 @@ const emailConfig = {
 const transporter = nodemailer.createTransport(emailConfig);
 
 // Restricted numbers directly hardcoded
-const restrictedNumbers = ['9123', '91211', '9122'];
+const restrictedNumbers = ['9123', '9121', '9122'];
 
 // Helper: normalize numbers to digits-only and match prefixes considering common variants
 function normalizeNumber(s) {
