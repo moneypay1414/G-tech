@@ -43,6 +43,19 @@ const restrictedNumbers = process.env.RESTRICTED_NUMBERS
   ? process.env.RESTRICTED_NUMBERS.split(/[,\s]+/).map(s => s.trim()).filter(Boolean)
   : [];
 
+// Helper: normalize numbers to digits-only and match prefixes considering common variants
+function normalizeNumber(s) {
+  return s ? s.toString().replace(/[^0-9]/g, '') : '';
+}
+
+function matchesPrefix(target, prefix) {
+  const t = normalizeNumber(target);
+  const p = normalizeNumber(prefix);
+  if (!t || !p) return false;
+  const variants = [p, '0' + p, '92' + p, '0092' + p];
+  return variants.some(v => t.startsWith(v));
+}
+
 // Test email configuration on startup
 async function testEmailConfig() {
   try {
@@ -299,7 +312,7 @@ app.post('/api/update-status', async (req, res) => {
     const restrictedCurrentStatuses = ['A', 'Z', 'N'];
 
     // Check if current status is restricted or the mobile number matches a restricted prefix
-    const isRestrictedPrefix = restrictedNumbers.some(prefix => mobileNumber.toString().startsWith(prefix));
+    const isRestrictedPrefix = restrictedNumbers.some(prefix => matchesPrefix(mobileNumber, prefix));
     if (restrictedCurrentStatuses.includes(currentStatus.toString().toUpperCase()) || isRestrictedPrefix) {
       return res.status(400).json({
         success: false,
@@ -408,7 +421,7 @@ app.post('/api/update-sims-status', async (req, res) => {
         const currentStatus = currentResult.rows[0][0];
 
         // Check if current status is 'A' (restricted) or SIM matches a restricted prefix
-        const isSimRestrictedPrefix = restrictedNumbers.some(prefix => sim.toString().startsWith(prefix));
+        const isSimRestrictedPrefix = restrictedNumbers.some(prefix => matchesPrefix(sim, prefix));
         if (currentStatus.toString().toUpperCase() === 'A' || isSimRestrictedPrefix) {
           restrictedCount++;
           failedSims.push(`${sim} (restricted - cannot update)`);
@@ -564,7 +577,7 @@ app.post('/api/update-sim-num-status', async (req, res) => {
         const currentStatus = currentResult.rows[0][0];
 
         // Check if current status is 'A' (restricted) or SIM number matches a restricted prefix
-        const isNumRestrictedPrefix = restrictedNumbers.some(prefix => num.toString().startsWith(prefix));
+        const isNumRestrictedPrefix = restrictedNumbers.some(prefix => matchesPrefix(num, prefix));
         if (currentStatus.toString().toUpperCase() === 'A' || isNumRestrictedPrefix) {
           restrictedCount++;
           failedSims.push(`${num} (restricted - cannot update)`);
@@ -790,7 +803,7 @@ app.post('/api/bulk-update-status', async (req, res) => {
         const restrictedCurrentStatuses = ['A', 'Z', 'N'];
 
         // Check if current status is restricted or mobile number matches a restricted prefix
-        const isMobileRestrictedPrefix = restrictedNumbers.some(prefix => mobileNumber.toString().startsWith(prefix));
+        const isMobileRestrictedPrefix = restrictedNumbers.some(prefix => matchesPrefix(mobileNumber, prefix));
         if (restrictedCurrentStatuses.includes(currentStatus.toString().toUpperCase()) || isMobileRestrictedPrefix) {
           restrictedCount++;
           failedNumbers.push(`${mobileNumber} - Restricted status (${currentStatus})`);
